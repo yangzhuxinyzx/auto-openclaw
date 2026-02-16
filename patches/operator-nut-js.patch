@@ -1,0 +1,87 @@
+--- /tmp/ui-tars-official/packages/ui-tars/operators/nut-js/src/index.ts	2026-02-16 12:29:17.093409100 +0800
++++ /c/Users/29350/Desktop/UI-TARS-desktop-0.3.0-beta.11/packages/ui-tars/operators/nut-js/src/index.ts	2026-02-16 14:23:20.267467700 +0800
+@@ -170,7 +170,7 @@
+     switch (action_type) {
+       case 'wait':
+         logger.info('[NutjsOperator] wait', action_inputs);
+-        await sleep(5000);
++        await sleep(2000);
+         break;
+ 
+       case 'mouse_move':
+@@ -241,13 +241,32 @@
+           const stripContent = content.replace(/\\n$/, '').replace(/\n$/, '');
+           keyboard.config.autoDelayMs = 0;
+           if (process.platform === 'win32') {
+-            const originalClipboard = await clipboard.getContent();
+-            await clipboard.setContent(stripContent);
+-            await keyboard.pressKey(Key.LeftControl, Key.V);
+-            await sleep(50);
+-            await keyboard.releaseKey(Key.LeftControl, Key.V);
+-            await sleep(50);
+-            await clipboard.setContent(originalClipboard);
++            // Try clipboard paste first (fast), fall back to keyboard.type (reliable)
++            let pasted = false;
++            try {
++              let originalClipboard = '';
++              try {
++                originalClipboard = await clipboard.getContent();
++              } catch {
++                // clipboard may be empty — that's fine
++              }
++              await clipboard.setContent(stripContent);
++              await keyboard.pressKey(Key.LeftControl, Key.V);
++              await sleep(50);
++              await keyboard.releaseKey(Key.LeftControl, Key.V);
++              await sleep(50);
++              pasted = true;
++              try {
++                await clipboard.setContent(originalClipboard);
++              } catch {
++                // restore failed — not critical
++              }
++            } catch (e) {
++              logger.warn('[NutjsOperator] clipboard paste failed, falling back to keyboard.type', e);
++            }
++            if (!pasted) {
++              await keyboard.type(stripContent);
++            }
+           } else {
+             await keyboard.type(stripContent);
+           }
+@@ -292,17 +311,32 @@
+ 
+       case 'scroll': {
+         const { direction } = action_inputs;
+-        // if startX and startY is not null, move mouse to startX, startY
++        // focus the target area first for better reliability on Windows
+         if (startX !== null && startY !== null) {
+           await moveStraightTo(startX, startY);
++          await sleep(50);
++          await mouse.click(Button.LEFT);
++          await sleep(50);
+         }
+ 
++        const amount = 10 * 120; // amplify scroll distance for reliability
++        logger.info('[NutjsOperator] scroll', direction, amount);
++
+         switch (direction?.toLowerCase()) {
+           case 'up':
+-            await mouse.scrollUp(5 * 100);
++            await mouse.scrollUp(amount);
+             break;
+           case 'down':
+-            await mouse.scrollDown(5 * 100);
++            await mouse.scrollDown(amount);
++            break;
++          case 'left':
++            // fallback to keyboard if horizontal wheel isn't available
++            await keyboard.pressKey(Key.Left);
++            await keyboard.releaseKey(Key.Left);
++            break;
++          case 'right':
++            await keyboard.pressKey(Key.Right);
++            await keyboard.releaseKey(Key.Right);
+             break;
+           default:
+             console.warn(

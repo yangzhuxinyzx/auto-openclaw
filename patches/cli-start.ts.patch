@@ -1,0 +1,152 @@
+--- /tmp/ui-tars-official/packages/ui-tars/cli/src/cli/start.ts	2026-02-16 12:29:17.076272000 +0800
++++ /c/Users/29350/Desktop/UI-TARS-desktop-0.3.0-beta.11/packages/ui-tars/cli/src/cli/start.ts	2026-02-16 14:15:51.892400600 +0800
+@@ -7,7 +7,8 @@
+ import os from 'node:os';
+ 
+ import fetch from 'node-fetch';
+-import { GUIAgent } from '@ui-tars/sdk';
++import { GUIAgent, StatusEnum } from '@ui-tars/sdk';
++import type { GUIAgentData } from '@ui-tars/sdk';
+ import * as p from '@clack/prompts';
+ import yaml from 'js-yaml';
+ 
+@@ -18,6 +19,7 @@
+   presets?: string;
+   target?: string;
+   query?: string;
++  output?: 'text' | 'json';
+ }
+ export const start = async (options: CliOptions) => {
+   const CONFIG_PATH = path.join(os.homedir(), '.ui-tars-cli.json');
+@@ -128,6 +130,24 @@
+     abortController.abort();
+   });
+ 
++  const isJson = options.output === 'json';
++  let loopCount = 0;
++  let finalStatus = StatusEnum.INIT as StatusEnum;
++  const actionSummary: string[] = [];
++  let lastScreenshotBase64 = '';
++
++  const jsonLine = (obj: Record<string, unknown>) => {
++    if (isJson) {
++      process.stdout.write(JSON.stringify(obj) + '\n');
++    }
++  };
++
++  // Extract thought from raw prediction text (parser drops it due to regex mismatch)
++  const extractThought = (text: string): string => {
++    const match = text.match(/Thought[:：]\s*([\s\S]+?)(?=\s*Action[:：]|$)/);
++    return match ? match[1].trim() : '';
++  };
++
+   const guiAgent = new GUIAgent({
+     model: {
+       baseURL: config.baseURL,
+@@ -137,21 +157,94 @@
+     },
+     operator: targetOperator,
+     signal: abortController.signal,
+-    // onData: ({ data }) => {
+-    // console.log(
+-    //   '[======data======]',
+-    //   inspect(data, {
+-    //     showHidden: false,
+-    //     depth: null,
+-    //     colors: true,
+-    //     maxStringLength: 100,
+-    //   }),
+-    // );
+-    // },
++    onData: ({ data }: { data: GUIAgentData }) => {
++      finalStatus = data.status;
++
++      if (!isJson) return;
++
++      // Status-only updates (no conversations)
++      if (!data.conversations || data.conversations.length === 0) {
++        if (data.status !== StatusEnum.RUNNING && data.status !== StatusEnum.INIT) {
++          jsonLine({ event: 'status', status: data.status });
++        }
++        return;
++      }
++
++      const conv = data.conversations[data.conversations.length - 1];
++
++      // Screenshot event — keep last screenshot for final report
++      if (conv.from === 'human' && conv.screenshotBase64) {
++        loopCount++;
++        lastScreenshotBase64 = conv.screenshotBase64;
++        jsonLine({
++          event: 'screenshot',
++          loop: loopCount,
++          width: conv.screenshotContext?.size?.width,
++          height: conv.screenshotContext?.size?.height,
++        });
++      }
++
++      // Prediction event — extract thought from raw value
++      if (conv.from === 'gpt' && conv.predictionParsed) {
++        const rawThought = extractThought(conv.value || '');
++        for (const pred of conv.predictionParsed) {
++          const thought = pred.thought || rawThought;
++          jsonLine({
++            event: 'prediction',
++            loop: loopCount,
++            action_type: pred.action_type,
++            thought,
++            action_inputs: pred.action_inputs,
++          });
++          // Build human-readable summary
++          actionSummary.push(
++            `[${loopCount}] ${pred.action_type}${thought ? ' — ' + thought : ''}`,
++          );
++        }
++      }
++    },
+     onError: ({ data, error }) => {
+-      console.error(error, data);
++      if (isJson) {
++        jsonLine({ event: 'error', message: String(error), status: data.status });
++      } else {
++        console.error(error, data);
++      }
+     },
+   });
+ 
+   await guiAgent.run(answers.instruction);
++
++  // Save final screenshot to temp file so caller can inspect the result
++  let screenshotPath = '';
++  if (isJson && lastScreenshotBase64) {
++    screenshotPath = path.join(os.tmpdir(), `ui-tars-result-${Date.now()}.png`);
++    fs.writeFileSync(screenshotPath, Buffer.from(lastScreenshotBase64, 'base64'));
++  }
++
++  // Final status output with summary and screenshot path
++  jsonLine({
++    event: 'done',
++    status: finalStatus,
++    loops: loopCount,
++    summary: actionSummary,
++    screenshotPath,
++  });
++
++  // Exit with meaningful code
++  switch (finalStatus) {
++    case StatusEnum.END:
++      process.exit(0);
++      break;
++    case StatusEnum.ERROR:
++      process.exit(1);
++      break;
++    case StatusEnum.CALL_USER:
++      process.exit(2);
++      break;
++    case StatusEnum.USER_STOPPED:
++      process.exit(3);
++      break;
++    default:
++      process.exit(0);
++  }
+ };
