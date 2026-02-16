@@ -36,8 +36,12 @@ cd UI-TARS-desktop
 git checkout v0.3.0-beta.11
 pnpm install
 
-# 应用本项目的补丁（见下方"改动说明"）
-# 然后按顺序构建
+# 用本项目的改动文件覆盖原文件
+cp <auto-openclaw>/src/cli/start.ts packages/ui-tars/cli/src/cli/start.ts
+cp <auto-openclaw>/src/cli/commands.ts packages/ui-tars/cli/src/cli/commands.ts
+cp <auto-openclaw>/src/operator-nut-js/index.ts packages/ui-tars/operators/nut-js/src/index.ts
+
+# 按顺序构建
 cd packages/ui-tars/shared && pnpm run build && cd -
 cd packages/ui-tars/sdk && pnpm run build && cd -
 cd packages/ui-tars/operators/nut-js && pnpm run build && cd -
@@ -142,11 +146,13 @@ auto-openclaw/
 ├── README.md
 ├── skills/
 │   └── ui-tars/
-│       └── SKILL.md          # OpenClaw skill 定义
-└── patches/
-    ├── cli-start.ts.patch    # CLI 结构化输出补丁
-    ├── cli-commands.ts.patch # CLI 选项补丁
-    └── operator-nut-js.patch # NutJS operator 修复补丁
+│       └── SKILL.md              # OpenClaw skill 定义
+└── src/
+    ├── cli/
+    │   ├── start.ts              # CLI 主逻辑（JSON 输出、退出码、截图）
+    │   └── commands.ts           # CLI 命令定义（--output 选项）
+    └── operator-nut-js/
+        └── index.ts              # NutJS 桌面操作器（剪贴板 fallback、scroll 修复）
 ```
 
 ## License
