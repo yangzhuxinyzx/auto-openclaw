@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'apps/agent-tars/src/*'
+  - 'apps/ui-tars/src/*'
+  - 'packages/ui-tars/**'
+  - 'packages/agent-infra/**'
+  - '!packages/agent-infra/create-new-mcp/template-*'
+  - 'packages/common/*'
+  - '!packages/ui-tars/visualizer'

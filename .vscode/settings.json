@@ -1,0 +1,63 @@
+{
+  "[javascript][javascriptreact][typescript][typescriptreact]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/static": true,
+    "**/build": true,
+    "**/*.min.js": true,
+    "**/*.map": true,
+    "**/*.log": true,
+    "**/*.cache": true,
+    "**/*.bak": true,
+    "**/*.tmp": true
+  },
+  "psi-header.config": {
+    "forceToTop": true
+  },
+  "psi-header.changes-tracking": {
+    "isActive": true,
+    "excludeGlob": [
+      "node_modules/**",
+      "dist/**",
+      "build/**",
+      "out/**"
+    ],
+    "autoHeader": "manualSave"
+  },
+  "psi-header.templates": [
+    {
+      "language": "javascript",
+      "template": [
+        "Copyright (c) 2025 Bytedance, Inc. and its affiliates.",
+        "SPDX-License-Identifier: Apache-2.0"
+      ]
+    },
+    {
+      "language": "typescript",
+      "mapTo": "javascript"
+    },
+    {
+      "language": "typescriptreact",
+      "mapTo": "javascript"
+    },
+    {
+      "language": "javascriptreact",
+      "mapTo": "javascript"
+    },
+    {
+      "language": "*",
+      "template": []
+    }
+  ],
+  "cSpell.words": [
+    "DEEPSEEK",
+    "rslib"
+  ]
+}
