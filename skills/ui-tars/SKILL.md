@@ -45,7 +45,8 @@ ui-tars start --target nut-js --query "<你的指令>" --output json
 
 1. 先看 `done` 事件的 `status` 判断成败
 2. 读 `summary` 了解 UI-TARS 做了什么、每步在想什么
-3. 如需确认视觉结果，用 Read 工具读取 `screenshotPath` 的截图
+3. **必须**用 Read 工具读取 `screenshotPath` 的截图来确认最终视觉结果，这是验证任务是否真正完成的唯一方式
+4. 将截图内容和 summary 一起反馈给用户
 
 ### action_type 常见值
 
