@@ -17,7 +17,7 @@
 - Node.js >= 20
 - pnpm 9.10.0
 - [OpenClaw](https://github.com/anthropics/openclaw) 已安装
-- VLM API（推荐火山引擎 Doubao-Seed-1.6-VL）
+- VLM API（推荐火山引擎 doubao-seed-2-0-pro-260215）
 
 ## 安装
 
@@ -53,7 +53,7 @@ ui-tars start --help     # 应显示 --output 选项
 {
   "baseURL": "https://ark.cn-beijing.volces.com/api/v3",
   "apiKey": "<你的 API Key>",
-  "model": "doubao-seed-1-6-251015",
+  "model": "doubao-seed-2-0-pro-260215",
   "useResponsesApi": true
 }
 ```
